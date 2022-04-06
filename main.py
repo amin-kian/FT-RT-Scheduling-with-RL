@@ -60,6 +60,8 @@ class System:
             print("  {0}: {1}".format(lpcore.name, lpcore.get_energy_consumed()))
         print("  {0}: {1}".format(self.hp_core.name, self.hp_core.get_energy_consumed()))
 
+def taskset_generator():
+    pass
 
 if __name__ == "__main__":
     # parse arguments
