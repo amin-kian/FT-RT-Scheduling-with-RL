@@ -1,4 +1,3 @@
-import simpy
 from FEST_Scheduler import FEST_Scheduler
 from Core import Core
 from Task import Task
@@ -7,22 +6,23 @@ import sys
 
 # FEST variables
 k = 5
-frame_deadline = 200    # ms
+frame_deadline = 200    # in ms
+time_step = 0.1     # fidelity of each time step for the scheduler/task execution times, in ms
 
 # Represents the system
 class System:
-    def __init__(self):
+    def __init__(self, k, frame, time_step):
         self.power_consumption = 0
-        self.scheduler = FEST_Scheduler(k, frame_deadline)
+        self.scheduler = FEST_Scheduler(k, frame, time_step)
 
-        self.sim_time = 0
-        self.sim_step = 1    # ms
+        #self.sim_time = 0
+        self.sim_step = time_step   # ms
 
         self.lp_cores = [ Core(name="LP_Core0", isLP=True, ai=0.3, f=0.8, xi=0.03, p_idle=0.02) ]
         self.hp_core = Core(name="HP_Core", isLP=False, ai=1.0, f=1.0, xi=0.1, p_idle=0.05)
 
-    def run(self, env):
-        # 0. Application task set
+    def run(self):
+        # 0. Application task set (TEMP)
         tasks = [
             Task(0, 20, 14),
             Task(1, 22, 13),
@@ -43,7 +43,7 @@ class System:
         # 2. Runtime: execute tasks
         print("Start running simulation ...")
         # start running the scheduler
-        yield env.process(self.scheduler.run(env, self.sim_step, self.lp_cores, self.hp_core))
+        self.scheduler.simulate(self.lp_cores, self.hp_core)
         
         # 3. RESULTS
         print("===RESULTS===")
@@ -51,10 +51,15 @@ class System:
 
         # check if any tasks did not manage to complete
         if self.scheduler.backup_list:
+            print("THIS SHOULD NOT HAPPEN, BUT,")
             print("Some tasks did not get to execute: ", end="")
             for task in self.scheduler.backup_list:
                 print(task.getId())
         # print energy consumption
+        print("Active Durations:")
+        for lpcore in self.lp_cores:
+            print("  {0}: {1}".format(lpcore.name, lpcore.get_active_duration()))
+        print("  {0}: {1}".format(self.hp_core.name, self.hp_core.get_active_duration()))
         print("Energy Consumption:")
         for lpcore in self.lp_cores:
             print("  {0}: {1}".format(lpcore.name, lpcore.get_energy_consumed()))
@@ -77,8 +82,5 @@ if __name__ == "__main__":
     print("frame = {0} ms".format(frame_deadline))
 
     print("===SIMULATION===")
-    env = simpy.Environment()
-    system = System()
-    # execution times of each task for an LP or HP core in ms (TBD)
-    sim = env.process(system.run(env))
-    env.run(until=sim)
+    system = System(k, frame_deadline, time_step)
+    system.run()

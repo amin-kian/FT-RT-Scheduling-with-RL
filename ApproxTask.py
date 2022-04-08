@@ -13,8 +13,8 @@ class ApproxTask(Task):
         # temp value, will be set for each time window
         self.workload_quota = 0
 
-        # internal counter to check if task would be completed
-        self.taskCompletion
+        # internal counter to check if task would be completed yet (as EnSuRe time partitions)
+        self.taskCompletion = False
 
     def getDeadline(self):
         return self.deadline
