@@ -2,11 +2,12 @@ import random
 
 class FEST_Scheduler:
     # init
-    def __init__(self, k, frame, time_step):
+    def __init__(self, k, frame, time_step, log_debug):
         """
         k: number of faults the system can support
         frame: size of the frame, in ms
         time_step: fidelity of each time step for the scheduler/task execution times, in ms
+        log_debug: whether to print logging statements
         """
         # application parameters
         self.k = k
@@ -17,6 +18,9 @@ class FEST_Scheduler:
         self.pri_schedule = dict()
         self.backup_start = 0
         self.backup_list = None
+
+        # logging
+        self.log_debug = log_debug  # whether to print log statements or not
 
     # class helper functions
     def getLPExecutionTime(task):
@@ -65,7 +69,7 @@ class FEST_Scheduler:
         reserve_cap = 0
         l = min(self.k, len(self.backup_list))
         for i in range(l):
-            reserve_cap += FEST_Scheduler.getHPExecutionTime(self.backup_list[i])
+            reserve_cap += self.backup_list[i].getHPExecutionTime()
 
         # reserve reserve_cap units of backup slots
         self.backup_start = self.frame - reserve_cap
@@ -119,7 +123,8 @@ class FEST_Scheduler:
             else:
                 # set the time the task completes
                 completion_time = curr_time + task.getLPExecutedDuration()
-                print("Completion time: {0}".format(completion_time))
+                if self.log_debug:
+                    print("Completion time: {0}".format(completion_time))
                 task.setCompletionTime(completion_time)
                 # check if task's primary copy has overlap with backup copy
                 if completion_time >= self.backup_start:    # if the task completes after backup_start, there is a chance of overlap
@@ -147,7 +152,7 @@ class FEST_Scheduler:
         # TEMP: just to check that tasks completed successfully
         if num_faults_left > 0:
             if num_faults_left < len(self.backup_list):
-                print("Faults were not resolved properly. num_faults = {0}, backup_list length = {1}".format(num_faults_resolved, len(self.backup_list)))
+                print("Faults were not resolved properly. num_faults = {0}, backup_list length = {1}".format(num_faults_left, len(self.backup_list)))
             elif num_faults_left > len(self.backup_list):
                 print("Some tasks cannot finish executing.")
             else:   # it is fine
@@ -173,7 +178,8 @@ class FEST_Scheduler:
     def generate_fault_occurrences(self):
         #  randomly generate the time occurrence of k faults
         fault_times = []
-        for i in range(self.k):
+        l = min(self.k, len(self.pri_schedule))
+        for i in range(l):
             # randomly choose a time for the fault to occur
             fault_time = None
             # randomly generate until a valid fault_time for fault to occur is obtained
@@ -206,43 +212,3 @@ class FEST_Scheduler:
                     fault_time = None
 
         return fault_times
-
-
-    # def run(self, env, step, lp_cores, hp_core):
-    #     # start the cores
-    #     cores_active = []
-    #     # start the LP core(s)
-    #     for lp_core in lp_cores:
-    #         cores_active.append( env.process(lp_core.run(env, step, self)) )
-    #     # start the HP core
-    #     cores_active.append( env.process(hp_core.run(env, step, self)) )
-
-    #     print("{0}: Begin task execution".format(env.now))
-    #     # run for one frame
-    #     while env.now < self.frame:
-    #         time = env.now
-    #         # check if to schedule a primary task
-    #         if time in self.pri_schedule.keys():
-    #             task = self.pri_schedule[time]
-    #             # execute next scheduled primary task
-    #             print("{0}: FEST: Scheduled task {1} for LP core".format(time, task.getId()))
-    #             # assign to LP core
-    #             lp_cores[0].schedule_task(env, task)
-
-    #         # if time >= BB-overloading window, execute next backup task on list
-    #         if time == self.backup_start and self.backup_list:  # TODO: current PROBLEM, backup_start only updates later on, so the next backup task will not get scheduled
-    #             # execute next backup task on list
-    #             print("{0}: FEST: Execute backup task {1} on HP core".format(env.now, self.backup_list[0].getId()))
-    #             # assign to HP core
-    #             hp_core.schedule_task(env, self.backup_list[0])
-
-    #         yield env.timeout(step)
-
-    #     print("{0}: Frame deadline reached".format(env.now))
-
-    #     # wait an extra step before terminating everything
-    #     yield env.timeout(step)
-
-    #     # execution completed, stop the cores
-    #     for core in cores_active:
-    #         core.interrupt()
