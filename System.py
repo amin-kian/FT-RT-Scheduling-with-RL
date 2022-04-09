@@ -1,4 +1,5 @@
 from FEST_Scheduler import FEST_Scheduler
+from EnSuRe_Scheduler import EnSuRe_Scheduler
 from Core import Core
 from Task import Task
 
@@ -18,17 +19,29 @@ class System:
     """
     The System class represents a heterogeneous system.
     """
-    def __init__(self, k, frame, time_step, lp_hp_ratio, log_debug=False):
-        self.power_consumption = 0
-        self.scheduler = FEST_Scheduler(k, frame, time_step, log_debug)
-
-        #self.sim_time = 0
-        self.sim_step = time_step   # ms
+    def __init__(self, scheduler_type, k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug=False):
+        """
+        scheduler_type: "FEST" or "EnSuRe"
+        k: number of faults the system can support
+        frame: size of the frame, in ms
+        time_step: fidelity of each time step for the scheduler/task execution times, in ms
+        lp_hp_ratio: ratio of LP to HP frequency
+        log_debug: whether to print logging statements
+        """
+        # define scheduler
+        if scheduler_type == "FEST":
+            self.scheduler = FEST_Scheduler(k, frame, time_step, log_debug)
+        elif scheduler_type == "EnSuRe":
+            self.scheduler = EnSuRe_Scheduler(k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug)
+        else:
+            raise SystemExit("Invalid scheduler type given.")
 
         lp_freq = 1.0
         hp_freq = lp_freq / lp_hp_ratio
 
-        self.lp_cores = [ Core(name="LP_Core0", isLP=True, ai=0.3, f=lp_freq, xi=0.03, p_idle=0.02) ]
+        self.lp_cores = []
+        for i in range(num_lp_cores):
+            self.lp_cores.append(Core(name="LP_Core{0}".format(i), isLP=True, ai=0.3, f=lp_freq, xi=0.03, p_idle=0.02))
         self.hp_core = Core(name="HP_Core", isLP=False, ai=1.0, f=hp_freq, xi=0.1, p_idle=0.05)
 
         # logging
@@ -98,7 +111,7 @@ if __name__ == "__main__":
         frame_deadline = int(sys.argv[2])
         file = sys.argv[3]
     except IndexError:
-        raise SystemExit("Error: please run 'python38 main.py [k] [frame] [file]', e.g. 'python38 main.py 5 200 data.csv'\r\n\r\n  k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
+        raise SystemExit("Error: please run 'python38 System.py [type] [k] [frame] [file]', e.g. 'python38 System.py FEST 5 200 data.csv'\r\n\r\n  type = \"FEST\" or \"EnSuRe\" | k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
 
     print("===SCHEDULER PARAMETERS===")
     print("Scheduler = {0}".format("FEST"))
@@ -106,7 +119,7 @@ if __name__ == "__main__":
     print("frame = {0} ms".format(frame_deadline))
 
     print("===SIMULATION===")
-    system = System(k, frame_deadline, time_step, 0.8, True)
+    system = System("FEST", k, frame_deadline, time_step, 1, 0.8, True)
 
     # 0. Read application task set from file
     with open(file, 'r') as read_obj:
