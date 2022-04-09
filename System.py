@@ -29,6 +29,7 @@ class System:
         log_debug: whether to print logging statements
         """
         # define scheduler
+        self.scheduler_type = scheduler_type
         if scheduler_type == "FEST":
             self.scheduler = FEST_Scheduler(k, frame, time_step, log_debug)
         elif scheduler_type == "EnSuRe":
@@ -72,11 +73,19 @@ class System:
         # check which core executed each tasks
 
         # check if any tasks did not manage to complete
-        if self.scheduler.backup_list:
-            print("THIS SHOULD NOT HAPPEN, BUT,")
-            print("Some tasks did not get to execute: ", end="")
-            for task in self.scheduler.backup_list:
-                print(task.getId())
+        if self.scheduler_type == "FEST":
+            if self.scheduler.backup_list:
+                print("THIS SHOULD NOT HAPPEN, BUT,")
+                print("Some tasks did not get to execute: ", end="")
+                for task in self.scheduler.backup_list:
+                    print(task.getId())
+        elif self.scheduler_type == "EnSuRe":
+            for backup_list in self.scheduler.backup_list:
+                if backup_list:
+                    print("THIS SHOULD NOT HAPPEN, BUT,")
+                    print("Some tasks did not get to execute: ", end="")
+                    for task in backup_list:
+                        print(task.getId())
 
         # print energy consumption
         if self.log_debug:
@@ -111,7 +120,7 @@ if __name__ == "__main__":
         frame_deadline = int(sys.argv[2])
         file = sys.argv[3]
     except IndexError:
-        raise SystemExit("Error: please run 'python38 System.py [type] [k] [frame] [file]', e.g. 'python38 System.py FEST 5 200 data.csv'\r\n\r\n  type = \"FEST\" or \"EnSuRe\" | k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
+        raise SystemExit("Error: please run 'python38 System.py [k] [frame] [file]', e.g. 'python38 System.py 5 200 data.csv'\r\n\r\n  type = \"FEST\" or \"EnSuRe\" | k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
 
     print("===SCHEDULER PARAMETERS===")
     print("Scheduler = {0}".format("FEST"))

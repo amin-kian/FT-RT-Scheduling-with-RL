@@ -36,3 +36,18 @@ class ApproxTask(Task):
         
     def setBackupWorkloadQuota(self, bwq):
         self.backup_workload_quota.append(bwq)
+
+    def resetEncounteredFault(self):
+        # reset the encounteredFault flag
+        self.encounteredFault = False
+
+    def setEncounteredFault(self, idx, faultOccurredTime):
+        """
+        faultOccurredTime: relative to the start time of the primary copy of this task
+        """
+        # set the encounteredFault flag
+        self.encounteredFault = True
+        # set the new execution times for the task
+        self.workload_quota[idx] = self.workload_quota[idx] - faultOccurredTime
+        self.lpExecutedDuration = self.workload_quota[idx]
+        self.hpExecutedDuration = self.hpExecTime

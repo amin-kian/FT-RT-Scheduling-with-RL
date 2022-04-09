@@ -58,6 +58,7 @@ class FEST_Scheduler:
     def remove_from_backup_list(self, taskId):
         """
         To be called when a task (either its primary or backup copy) completes execution successfully.
+        taskId: id of the task to be removed
         """
         # remove task from backup list
         self.backup_list = [i for i in self.backup_list if i.getId() != taskId]
@@ -85,10 +86,10 @@ class FEST_Scheduler:
 
     def simulate(self, lp_cores, hp_core):
         # 1. Calculate the times when faults occur
-        fault_times = self.generate_fault_occurrences() # TODO: not really sure if the list is actually needed
+        self.generate_fault_occurrences()
 
-        # 2. "Simulate" execution/completion times of the tasks (TODO: take note of overlapping with backup core)
-        num_faults_left = self.k
+        # 2. "Simulate" execution/completion times of the tasks (take note of overlapping with backup core)
+        num_faults_left = min(self.k, len(self.pri_schedule))
         for key in self.pri_schedule.keys(): # in sequence of execution start time
 
             curr_time = key     # the curr "simulation" time
@@ -99,7 +100,7 @@ class FEST_Scheduler:
                 while curr_time > self.backup_start + self.backup_list[0].getHPExecutionTime(): # the backup task of a faulty task has completed
                     # NOTE: backup core's active duration for this task already accounted for when the task fails
                     # update backup execution list
-                    self.remove_from_backup_list(task.getId())
+                    self.remove_from_backup_list(self.backup_list[0].getId())
 
                     # TEMP: just a checker
                     num_faults_left -= 1
@@ -210,5 +211,3 @@ class FEST_Scheduler:
                         break
                 else:   # the time step is after all the tasks arranged
                     fault_time = None
-
-        return fault_times
