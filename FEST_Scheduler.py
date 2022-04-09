@@ -4,6 +4,8 @@ class FEST_Scheduler:
     # init
     def __init__(self, k, frame, time_step, log_debug):
         """
+        Class constructor (__init__).
+
         k: number of faults the system can support
         frame: size of the frame, in ms
         time_step: fidelity of each time step for the scheduler/task execution times, in ms
@@ -24,13 +26,25 @@ class FEST_Scheduler:
 
     # class helper functions
     def getLPExecutionTime(task):
+        """
+        Helper function for sorting tasks in order of their execution times on the LP core.
+        """
         return task.getLPExecutionTime()
     
     def getHPExecutionTime(task):
+        """
+        Helper function for sorting tasks in order of their execution times on the HP core.
+        """
         return task.getHPExecutionTime()
 
     # Function to generate schedule
     def generate_schedule(self, tasksList):
+        """
+        Try to generate a schedule for the given task set. This follows the pseudo-code of the FEST algorithm from the paper.
+        Returns True if a feasible schedule is generated successfully, or False if no feasible schedule can be generated.
+        
+        tasksList: the task set to generate a schedule for.
+        """
         # 1. Sort tasks in non-increasing order of execution time
         tasksList.sort(reverse=True, key=FEST_Scheduler.getLPExecutionTime)
 
@@ -57,7 +71,9 @@ class FEST_Scheduler:
 
     def remove_from_backup_list(self, taskId):
         """
+        Given a task id, remove its corresponding task from the backup_list.
         To be called when a task (either its primary or backup copy) completes execution successfully.
+
         taskId: id of the task to be removed
         """
         # remove task from backup list
@@ -66,6 +82,10 @@ class FEST_Scheduler:
         self.update_BB_overloading()
 
     def update_BB_overloading(self):
+        """
+        Update backup_start with the current size of the BB-overloading window.
+        Up to k tasks will be reserved for BB-overloading.
+        """
         # compute BB-overloading window size
         reserve_cap = 0
         l = min(self.k, len(self.backup_list))
@@ -76,6 +96,9 @@ class FEST_Scheduler:
         self.backup_start = self.frame - reserve_cap
 
     def print_schedule(self):
+        """
+        Print the generated schedule to the console log.
+        """
         print("Schedule:")
         print(" Primary Tasks")
         for key in self.pri_schedule.keys():
@@ -85,6 +108,13 @@ class FEST_Scheduler:
         print("  Start: {0} ms".format(self.backup_start))
 
     def simulate(self, lp_cores, hp_core):
+        """
+        Simulate the execution of the tasks. The high-level steps:
+        1. 
+
+        lp_cores: list of references to the LP Core objects in the System.
+        hp_core: reference to the HP Core object in the System.
+        """
         # 1. Calculate the times when faults occur
         self.generate_fault_occurrences()
 
@@ -177,6 +207,18 @@ class FEST_Scheduler:
 
 
     def generate_fault_occurrences(self):
+        """
+        Generate the times at which faults will occur, and mark the affected tasks to have encountered a fault.
+        k faults will be generated. It is assumed that each task can only encounter one fault.
+        If the number of tasks is smaller than k, then a fault will be generated for all tasks.
+
+        The procedure for generating a fault:
+        1. Randomly sample a discrete time step within the frame.
+        2. Convert the discrete time step into the actual simulation time.
+        3. Check if the generated fault time is valid, by seeing if it occurs during the execution time of a task, and the task is not already marked to have encountered a fault.
+        4. If the generated fault time is not valid, repeat steps 1-3.
+        5. Repeat steps 1-4 for k times or number of tasks, whichever is smaller.
+        """
         #  randomly generate the time occurrence of k faults
         fault_times = []
         l = min(self.k, len(self.pri_schedule))

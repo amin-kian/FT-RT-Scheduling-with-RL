@@ -17,11 +17,13 @@ time_step = 0.01     # fidelity of each time step for the scheduler/task executi
 
 class System:
     """
-    The System class represents a heterogeneous system.
+    Class which represents a heterogeneous system that has one or more Low-Power (LP) cores, and one High-Performance (HP) core.
     """
     def __init__(self, scheduler_type, k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug=False):
         """
-        scheduler_type: "FEST" or "EnSuRe"
+        Class constructor (__init__).
+
+        scheduler_type: the scheduler to use, "FEST" or "EnSuRe"
         k: number of faults the system can support
         frame: size of the frame, in ms
         time_step: fidelity of each time step for the scheduler/task execution times, in ms
@@ -49,6 +51,13 @@ class System:
         self.log_debug = log_debug  # whether to print log statements or not
 
     def run(self, taskset):
+        """
+        Runs the scheduling algorithm with the following high-level steps:
+        1. Generate schedule. If no feasible schedule can be generated, exit
+        2. Simulate execution of the tasks, and calculate the system's energy consumption
+
+        taskset: the taskset to be scheduled by the algorithm.
+        """
         # make a copy of the task set to allow reusability
         tasks = copy.deepcopy(taskset)
 
@@ -98,9 +107,10 @@ class System:
                 print("  {0}: {1}".format(lpcore.name, lpcore.get_energy_consumed()))
             print("  {0}: {1}".format(self.hp_core.name, self.hp_core.get_energy_consumed()))
 
+
     def get_energy_consumption(self):
         """
-        Get energy consumption of this system.
+        Get the total energy consumption of this system, which is the sum of the energy consumption of its cores.
         """
         energy_consumption = 0
         for lpcore in self.lp_cores:

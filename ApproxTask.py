@@ -1,7 +1,21 @@
 from Task import Task
 
 class ApproxTask(Task):
+    """
+    Class which represents an independent task item with their own deadlines for an approximation-based system.
+    Inherits from the base class Task to implement additional functionalities for custom task deadline and approximation-based features.
+    """
     def __init__(self, id, lp_manExecTime, hp_manExecTime, lp_optExecTime, hp_optExecTime, deadline):
+        """
+        Class constructor (__init__).
+
+        id: the task id
+        lpExecTime: the execution time of the mandatory task component on a LP Core
+        hpExecTime: the execution time of the mandatory task component on a HP Core
+        lp_optExecTime: the execution time of the optional task component on a LP Core
+        hp_optExecTime: the execution time of the optional task component on a HP Core
+        deadline: the task deadline (in ms)
+        """
         Task.__init__(self, id, lp_manExecTime, hp_manExecTime)
 
         # for EnSuRe

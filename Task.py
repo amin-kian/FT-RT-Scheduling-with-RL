@@ -1,5 +1,15 @@
 class Task:
+    """
+    Class which represents an independent task item.
+    """
     def __init__(self, id, lp_execTime, hp_execTime):
+        """
+        Class constructor (__init__).
+
+        id: the task id
+        lpExecTime: the execution time of this task on a LP Core
+        hpExecTime: the execution time of this task on a HP Core
+        """
         self.id = id
         self.lpExecTime = lp_execTime
         self.hpExecTime = hp_execTime
@@ -15,15 +25,27 @@ class Task:
         self.hpExecutedDuration = 0
 
     def getId(self):
+        """
+        Get this task's id.
+        """
         return self.id
 
     def getLPExecutionTime(self):
+        """
+        Get the execution time of this task on a LP Core.
+        """
         return self.lpExecTime
     
     def getHPExecutionTime(self):
+        """
+        Get the execution time of this task on a HP Core.
+        """
         return self.hpExecTime
 
     def getCompletionTime(self):
+        """
+        Get the time this task completes.
+        """
         return self.completionTime
 
     def getLPExecutedDuration(self):
@@ -49,6 +71,11 @@ class Task:
         self.hpExecutedDuration = self.hpExecTime
 
     def setCompletionTime(self, completionTime):
+        """
+        Set the completion time of the task, i.e. the time at which the task completes.
+
+        completionTime: completion time of the task
+        """
         self.completionTime = completionTime
 
     def setHPExecutedDuration(self, duration):
@@ -59,4 +86,8 @@ class Task:
         self.hpExecutedDuration = duration
     
     def getEncounteredFault(self):
+        """
+        Get whether the task encountered a fault during its execution.
+        Since the simulation works by determining the occurrence of faults beforehand, this method returns whether the task is due to encounter a fault in this frame/time-window.
+        """
         return self.encounteredFault

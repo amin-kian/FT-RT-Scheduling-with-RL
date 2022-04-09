@@ -1,26 +1,14 @@
 import numpy as np
 import sys
-import random
-
-# n = 200     # no. tasks
-# sys_util = 1.0  # % utilisation of the system
-# frame_duration = 200    # in ms
-
-# precision = 2   # decimal places
-
-# min_norm = 1/10**precision
-
-# lp_hp_ratio = 0.5   # ratio of LP speed : HP speed
-
-# # normal sampling values
-# mean = 1
-# sd = 5
-
-# generalise it so it can also generate task set for EnSuRe, then to generate for FEST it is a specific restriction?
 
 class TasksetGenerator:
+    """
+    Class to generate a taskset that meets the specified parameters.
+    """
     def __init__(self, distribution, n, frame_duration, sys_util, precision_dp, lp_hp_ratio):
         """
+        Class constructor (__init__).
+
         distribution: "uniform" or "normal"
         n: no. tasks per set
         frame_duration: frame deadline (ms)
@@ -45,6 +33,11 @@ class TasksetGenerator:
 
     def generate(self, filename):
         """
+        Generates a random taskset and stores the taskset in a CSV file.
+
+        filename: Name of the file to write to. If the file already exists, it will be overwritten, else it will be created.
+
+        Taskset Generation Procedure
         1. Randomise n numbers from 0 to 1  - continuous uniform distribution or normal distribution
         2. Sum them up to find the current "magnitude", then normalize/scale to the expected magnitude (e.g. 50% of 200ms)
         3. Round to the precision
@@ -66,20 +59,16 @@ class TasksetGenerator:
         exec_times = rand_sample * (self.target_magnitude / magnitude)
 
         # 4. Determine a deadline for each task
-        # NOTE: one way to guarantee WQ: split deadlines into equal parts
-        # then, if any task's deadline is smaller than its execution time, increase it 
+        # make it simple: have n/10 possible time windows, task's deadline will be any of the time windows
+        # also, set a minimum size to time window
         deadlines = []
-        time_window = self.frame_duration / self.n
-        half_time_window = time_window * 0.5
+        num_time_windows = round(self.n / 10)
+        min_window_size = round(self.frame_duration / 2)
+        window_size = (self.frame_duration - min_window_size) / num_time_windows
+        possible_deadlines = [(min_window_size+i*window_size) for i in range(1, num_time_windows)]
+        possible_deadlines.append(self.frame_duration)
         for i in range(len(exec_times)):
-            #deadline = np.random.uniform(exec_time, self.frame_duration)    # deadline is anywhere between end of task execution, and frame_duration
-            
-            # introduce a small gaussian distribution to vary the deadline
-            deadline = min(i * time_window + half_time_window * np.random.normal(), self.frame_duration)
-            # if any task's deadline is smaller than its execution time, increase it 
-            while deadline < exec_times[i]:
-                deadline += min(exec_times[i], self.frame_duration)
-
+            deadline = np.random.choice(possible_deadlines)    # randomly pick one of the time windows as the deadline
             deadlines.append(deadline)
 
         # NOTE: how to ensure WQ must be within?

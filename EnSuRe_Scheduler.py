@@ -6,6 +6,8 @@ class EnSuRe_Scheduler:
     # init
     def __init__(self, k, frame, time_step, m_pri, lp_hp_ratio, log_debug):
         """
+        Class constructor (__init__).
+
         k: number of faults the system can support
         frame: size of the frame, in ms
         time_step: fidelity of each time step for the scheduler/task execution times, in ms
@@ -33,16 +35,16 @@ class EnSuRe_Scheduler:
         self.log_debug = log_debug  # whether to print log statements or not
 
     # class helper functions
-    def getLPExecutionTime(task):
-        return task.getLPExecutionTime()
-    
-    def getHPExecutionTime(task):
-        return task.getHPExecutionTime()
-
     def getTaskDeadline(task):
+        """
+        Helper function for sorting tasks in order of their deadlines.
+        """
         return task.getDeadline()
 
     def getTaskWQ(task):
+        """
+        Helper function for sorting tasks in order of the size of their workload-quota.
+        """
         return task.getWorkloadQuota(len(task.workload_quota)-1)
 
     def roundUpTimeStep(self, value):
@@ -53,8 +55,10 @@ class EnSuRe_Scheduler:
 
     def remove_from_backup_list(self, idx, taskId):
         """
+        Given a task id, remove its corresponding task from the backup_list for the current time-window.
         To be called when a task (either its primary or backup copy) completes execution successfully.
-        idx: the current time window
+
+        idx: the current time-window
         taskId: id of the task to be removed
         """
         # remove task from backup list
@@ -64,6 +68,9 @@ class EnSuRe_Scheduler:
 
     def update_BB_overloading(self, idx):
         """
+        Update backup_start with the new size of the BB-overloading window for the current time-window.
+        Up to k tasks will be reserved for BB-overloading.
+
         idx: the current time window
         """
         # compute BB-overloading window size
@@ -81,12 +88,16 @@ class EnSuRe_Scheduler:
 
     # Function to generate schedule
     def generate_schedule(self, tasksList):
+        """
+        Try to generate a schedule for the given task set. This follows the pseudo-code of the EnSuRe algorithm from the paper.
+        Returns True if a feasible schedule is generated successfully, or False if no feasible schedule can be generated.
+        
+        tasksList: the task set to generate a schedule for.
+        """
         # 1. Sort tasks in increasing order of deadlines to obtain deadline sequence
         tasksList.sort(reverse=False, key=EnSuRe_Scheduler.getTaskDeadline)
         self.deadlines = []
         [self.deadlines.append(task.getDeadline()) for task in tasksList if task.getDeadline() not in self.deadlines]   # NOTE: removes duplicate deadlines
-
-        print(self.deadlines)
 
         # 2. In each time window, schedule primary tasks onto the LP core
         for i in range(len(self.deadlines)): # each task in the list is the next deadline
@@ -176,6 +187,9 @@ class EnSuRe_Scheduler:
         return True
 
     def print_schedule(self):
+        """
+        Print the generated schedule to the console log.
+        """
         print("Schedule:")
         #for i in range(len(self.deadlines)): # each task in the list is the next deadline 
         print(" Primary Tasks")
@@ -218,7 +232,7 @@ class EnSuRe_Scheduler:
 
                 # 1. work on primary task
                 # i. update active duration for the execution time on LP core
-                lp_cores[0].update_active_duration(task.getWorkloadQuota(i))
+                lp_cores[key[1]].update_active_duration(task.getWorkloadQuota(i))
 
                 # if task encountered fault, updating energy consumption for HP core is straightforward
                 if task.getEncounteredFault():
@@ -284,7 +298,18 @@ class EnSuRe_Scheduler:
 
     def generate_fault_occurrences(self, idx):
         """
-        idx: the current time window
+        Generate the times at which faults will occur in this time-window, and mark the affected tasks to have encountered a fault.
+        k faults will be generated. It is assumed that each task can only encounter one fault.
+        If the number of tasks in this time-window is smaller than k, then a fault will be generated for all tasks in this time-window.
+
+        The procedure for generating a fault:
+        1. Randomly sample a discrete time step within the time window.
+        2. Convert the discrete time step into the actual simulation time.
+        3. Check if the generated fault time is valid, by seeing if it occurs during the execution time of a task, and the task is not already marked to have encountered a fault.
+        4. If the generated fault time is not valid, repeat steps 1-3.
+        5. Repeat steps 1-4 for k times or number of tasks in this time window, whichever is smaller.
+
+        idx: the current time-window
         """
         l = min(self.k, len(self.pri_schedule[idx]))
 
@@ -308,11 +333,9 @@ class EnSuRe_Scheduler:
                 # check if time step is valid
                 for key in self.pri_schedule[idx].keys():
                     task = self.pri_schedule[idx][key]
-                    if fault_time >= key[0] and fault_time < key[0] + task.getWorkloadQuota(idx):
+                    if fault_time >= key[0] and fault_time <= key[0] + task.getWorkloadQuota(idx):
                         # if task already has a fault, skip it
-                        if task.getEncounteredFault():
-                            continue
-                        else:
+                        if not task.getEncounteredFault():
                             # calculate the time step where fault occurred relative to the task start time
                             relative_fault_time = fault_time - key[0]
                             # mark task as having a fault
