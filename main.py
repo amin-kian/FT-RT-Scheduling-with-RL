@@ -6,10 +6,10 @@ from ast import literal_eval
 
 # scheduler variables
 k = 20
-frame_deadline = 100    # in ms
-time_step = 0.01     # fidelity of each time step for the scheduler/task execution times, in ms
+frame_deadline = 500    # in ms
+time_step = 0.0001     # fidelity of each time step for the scheduler/task execution times, in ms
 
-system = System("EnSuRe", k, frame_deadline, time_step, 2, 0.8, True)
+system = System("EnSuRe", k, frame_deadline, time_step, 3, 0.5, True)
 
 # 0. Test task set
 # tasks = [
@@ -27,7 +27,7 @@ system = System("EnSuRe", k, frame_deadline, time_step, 2, 0.8, True)
 # ]
 
 # 0. Read application task set from file
-with open('tasksets/sysutil0.9_2.csv', 'r') as read_obj:
+with open('tasksets/sysutil0.9_cores3_2.csv', 'r') as read_obj:
     # pass the file object to reader() to get the reader object
     csv_reader = reader(read_obj)
     # Get all rows of csv from csv_reader object as list of tuples
@@ -35,9 +35,11 @@ with open('tasksets/sysutil0.9_2.csv', 'r') as read_obj:
     
 # convert data into Task objects
 tasks = []
+task_total_workload = 0
 for task in tasks_data:
     tasks.append(ApproxTask(task[0], task[1], task[2], 0, 0, task[3]))
-        
+    task_total_workload += task[1]
 
+#print(task_total_workload)
 
 system.run(tasks)

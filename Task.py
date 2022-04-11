@@ -24,6 +24,8 @@ class Task:
         self.lpExecutedDuration = lp_execTime
         self.hpExecutedDuration = 0
 
+        self.completed = False
+
     def getId(self):
         """
         Get this task's id.
@@ -77,6 +79,7 @@ class Task:
         completionTime: completion time of the task
         """
         self.completionTime = completionTime
+        self.completed = True
 
     def setHPExecutedDuration(self, duration):
         """

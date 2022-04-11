@@ -68,7 +68,7 @@ class System:
         
         if self.log_debug:
             print("Schedule generated")
-            self.scheduler.print_schedule()
+            #self.scheduler.print_schedule()
 
         # 2. Runtime: execute tasks
         if self.log_debug:

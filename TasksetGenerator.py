@@ -5,19 +5,21 @@ class TasksetGenerator:
     """
     Class to generate a taskset that meets the specified parameters.
     """
-    def __init__(self, distribution, n, frame_duration, sys_util, precision_dp, lp_hp_ratio):
+    def __init__(self, distribution, n, frame_duration, sys_util, precision_dp, num_lpcores, lp_hp_ratio):
         """
         Class constructor (__init__).
 
         distribution: "uniform" or "normal"
         n: no. tasks per set
         frame_duration: frame deadline (ms)
-        sys_util: system utilisation (%)
+        num_lpcores: no. primary (LP) cores
+        sys_util: target system utilisation (%)
         """
         self.distribution = distribution
         self.n = n
         self.sys_util = sys_util
         self.frame_duration = frame_duration
+        self.num_lpcores = num_lpcores
 
         self.precision = precision_dp
         self.min_norm = 1/10**precision_dp
@@ -28,8 +30,8 @@ class TasksetGenerator:
         self.mean = 1
         self.sd = 5
 
-        # Determine expected "magnitude" to meet target system utilisation (sys_util * frame_duration)
-        self.target_magnitude = self.sys_util * self.frame_duration
+        # Determine expected "magnitude" to meet target system utilisation (sys_util * frame_duration) * no. cores
+        self.target_magnitude = self.sys_util * self.frame_duration * self.num_lpcores
 
     def generate(self, filename):
         """
@@ -59,11 +61,11 @@ class TasksetGenerator:
         exec_times = rand_sample * (self.target_magnitude / magnitude)
 
         # 4. Determine a deadline for each task
-        # make it simple: have n/10 possible time windows, task's deadline will be any of the time windows
+        # make it simple: 10 possible time windows, task's deadline will be any of the time windows
         # also, set a minimum size to time window
         deadlines = []
-        num_time_windows = round(self.n / 10)
-        min_window_size = round(self.frame_duration / 2)
+        num_time_windows = 10
+        min_window_size = round(self.frame_duration * self.sys_util)
         window_size = (self.frame_duration - min_window_size) / num_time_windows
         possible_deadlines = [(min_window_size+i*window_size) for i in range(1, num_time_windows)]
         possible_deadlines.append(self.frame_duration)
@@ -126,5 +128,5 @@ if __name__ == "__main__":
     print("system utilisation % = {0}".format(sys_util))
 
     # run
-    taskset_gen = TasksetGenerator(n, frame_duration, sys_util, 2, 0.5)
+    taskset_gen = TasksetGenerator(n, frame_duration, sys_util, 2, 1, 0.5)
     taskset_gen.generate('tasksets/test.csv')

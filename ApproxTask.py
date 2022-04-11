@@ -30,6 +30,11 @@ class ApproxTask(Task):
         self.workload_quota = []
         self.backup_workload_quota = []
 
+        self.startTime = 0
+
+    def setStartTime(self, startTime):
+        self.startTime = startTime
+
     def getDeadline(self):
         return self.deadline
 
@@ -54,6 +59,7 @@ class ApproxTask(Task):
     def resetEncounteredFault(self):
         # reset the encounteredFault flag
         self.encounteredFault = False
+        self.completed = False
 
     def setEncounteredFault(self, idx, faultOccurredTime):
         """
@@ -64,4 +70,4 @@ class ApproxTask(Task):
         # set the new execution times for the task
         self.workload_quota[idx] = self.workload_quota[idx] - faultOccurredTime
         self.lpExecutedDuration = self.workload_quota[idx]
-        self.hpExecutedDuration = self.hpExecTime
+        self.hpExecutedDuration = self.backup_workload_quota[idx]

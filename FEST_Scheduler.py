@@ -128,6 +128,9 @@ class FEST_Scheduler:
             # 0. at this time step, check if curr_time is greater than the completion time of a backup task, to update backup_list and BB-overloading window
             if curr_time > self.backup_start:   # we are within a backup execution time, proceed to further checks
                 while curr_time > self.backup_start + self.backup_list[0].getHPExecutionTime(): # the backup task of a faulty task has completed
+                    if not self.backup_list[0].getEncounteredFault():
+                        if not self.backup_list[0].completed:
+                            print("um, {0}".getTaskWQ())
                     # NOTE: backup core's active duration for this task already accounted for when the task fails
                     # update backup execution list
                     self.remove_from_backup_list(self.backup_list[0].getId())
@@ -149,13 +152,13 @@ class FEST_Scheduler:
                 #hp_energy = hp_core.energy_consumption_active(task.getHPExecutedDuration())
                 #hp_core.update_energy_consumption(hp_energy)
 
-
             # else, check for overlap with backup execution
             else:
                 # set the time the task completes
                 completion_time = curr_time + task.getLPExecutedDuration()
                 if self.log_debug:
-                    print("Completion time: {0}".format(completion_time))
+                    pass
+                    #print("Completion time: {0}".format(completion_time))
                 task.setCompletionTime(completion_time)
                 # check if task's primary copy has overlap with backup copy
                 if completion_time >= self.backup_start:    # if the task completes after backup_start, there is a chance of overlap
@@ -188,6 +191,8 @@ class FEST_Scheduler:
                 print("Some tasks cannot finish executing.")
             else:   # it is fine
                 self.backup_list.clear()
+        elif num_faults_left < 0:
+            print("Err num_faults_left is negative, whoops")
 
         # 3. Calculate energy consumption of the system from active/idle durations
         for lpcore in lp_cores:
