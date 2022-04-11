@@ -8,7 +8,7 @@ Python 3.8
 
 ## Setup
 
-Clone this project.
+Clone this repository.
 
 ```
 git clone https://github.com/djtfoo/FT-RT-Scheduling.git
@@ -17,14 +17,14 @@ git clone https://github.com/djtfoo/FT-RT-Scheduling.git
 The required Python libraries can be installed using pip via requirements.txt.
 ```
 cd FT-RT-Scheduling
-python3 -m pip install -r ./requirements.txt
+pip install -r ./requirements.txt
 ```
 
 ## How to Run
 
 Navigate to this directory. Then, launch Jupyter Notebook:
 ```
-python3 -m jupyter notebook
+jupyter notebook
 ```
 
 Open "FEST and EnSuRe Simulation.ipynb" and run the cells in order.
