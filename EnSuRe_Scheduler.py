@@ -234,7 +234,7 @@ class EnSuRe_Scheduler:
                             # Backup task completed before primary task did
                             for v in self.pri_schedule[i].values():
                                 if self.backup_list[i][0].getId() == v.getId():
-                                    print("id: " + str(self.backup_list[i][0].getId()))
+                                    #print("id: " + str(self.backup_list[i][0].getId()))
                                     v.setCompletionTime(self.backup_start[i] + v.getBackupWorkloadQuota(i))
                                     v.completed = True
                                     break
@@ -256,8 +256,8 @@ class EnSuRe_Scheduler:
                     task.completed = True
 
                 # 1. work on primary task
-                # i. update active duration for the execution time on LP core
                 elif not task.completed:
+                    # i. update active duration for the execution time on LP core
                     lp_cores[key[1]].update_active_duration(task.getWorkloadQuota(i))
 
                     # check for overlap with backup execution
@@ -287,9 +287,6 @@ class EnSuRe_Scheduler:
 
                     # update backup execution list
                     self.remove_from_backup_list(i, task.getId())
-
-                else:
-                    print("YO")
                 
             # TEMP: just to check that tasks completed successfully
             #print("num_faults_left: {0} for window {1}, left in backup: {2}".format(num_faults_left, i, len(self.backup_list[i])))

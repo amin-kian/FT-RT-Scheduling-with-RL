@@ -128,9 +128,17 @@ class FEST_Scheduler:
             # 0. at this time step, check if curr_time is greater than the completion time of a backup task, to update backup_list and BB-overloading window
             if curr_time > self.backup_start:   # we are within a backup execution time, proceed to further checks
                 while curr_time > self.backup_start + self.backup_list[0].getHPExecutionTime(): # the backup task of a faulty task has completed
-                    if not self.backup_list[0].getEncounteredFault():
-                        if not self.backup_list[0].completed:
-                            print("um, {0}".getTaskWQ())
+                    if not self.backup_list[0].getEncounteredFault() and not self.backup_list[0].completed:
+                        # Backup task completed before primary task did
+                        for v in self.pri_schedule[i].values():
+                            if self.backup_list[i][0].getId() == v.getId():
+                                print("id: " + str(self.backup_list[i][0].getId()))
+                                v.setCompletionTime(self.backup_start[i] + v.getBackupWorkloadQuota(i))
+                                v.completed = True
+                                break
+                        hp_core.update_active_duration(self.backup_list[i][0].getBackupWorkloadQuota(i))
+                        num_faults_left += 1
+                        
                     # NOTE: backup core's active duration for this task already accounted for when the task fails
                     # update backup execution list
                     self.remove_from_backup_list(self.backup_list[0].getId())
@@ -138,24 +146,20 @@ class FEST_Scheduler:
                     # TEMP: just a checker
                     num_faults_left -= 1
 
-            # 1. work on primary task
-            # i. update active duration for the execution time on LP core
-            lp_cores[0].update_active_duration(task.getLPExecutedDuration())
-            #lp_energy = lp_cores[0].energy_consumption_active(task.getLPExecutedDuration())
-            #lp_cores[0].update_energy_consumption(lp_energy)
 
             # if task encountered fault, updating energy consumption for HP core is straightforward
             if task.getEncounteredFault():
                 # ii. update active duration for the execution time on HP core
                 # NOTE: removing from backup_list will only be done in a time step after this
                 hp_core.update_active_duration(task.getHPExecutedDuration())
-                #hp_energy = hp_core.energy_consumption_active(task.getHPExecutedDuration())
-                #hp_core.update_energy_consumption(hp_energy)
 
-            # else, check for overlap with backup execution
-            else:
-                # set the time the task completes
-                completion_time = curr_time + task.getLPExecutedDuration()
+            # 1. work on primary task
+            elif not task.completed:
+                # i. update active duration for the execution time on LP core
+                lp_cores[0].update_active_duration(task.getLPExecutedDuration())
+
+                # check for overlap with backup execution
+                completion_time = curr_time + task.getLPExecutedDuration()  # set the time the task completes
                 if self.log_debug:
                     pass
                     #print("Completion time: {0}".format(completion_time))
@@ -177,8 +181,6 @@ class FEST_Scheduler:
                         task.setHPExecutedDuration(backup_overlap)
                         # ii. update active duration for the execution time on HP core
                         hp_core.update_active_duration(backup_overlap)
-                        #hp_energy = hp_core.energy_consumption_active(backup_overlap)
-                        #hp_core.update_energy_consumption(hp_energy)
 
                 # update backup execution list
                 self.remove_from_backup_list(task.getId())

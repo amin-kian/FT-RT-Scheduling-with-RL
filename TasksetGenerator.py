@@ -5,7 +5,7 @@ class TasksetGenerator:
     """
     Class to generate a taskset that meets the specified parameters.
     """
-    def __init__(self, distribution, n, frame_duration, sys_util, precision_dp, num_lpcores, lp_hp_ratio):
+    def __init__(self, distribution, n, frame_duration, sys_util, precision_dp, num_lpcores, lp_hp_ratio, seed=None):
         """
         Class constructor (__init__).
 
@@ -32,6 +32,10 @@ class TasksetGenerator:
 
         # Determine expected "magnitude" to meet target system utilisation (sys_util * frame_duration) * no. cores
         self.target_magnitude = self.sys_util * self.frame_duration * self.num_lpcores
+
+        # if seed is given, seed the rng
+        if seed is not None:
+            np.random.seed(seed)
 
     def generate(self, filename):
         """
@@ -61,10 +65,10 @@ class TasksetGenerator:
         exec_times = rand_sample * (self.target_magnitude / magnitude)
 
         # 4. Determine a deadline for each task
-        # make it simple: 10 possible time windows, task's deadline will be any of the time windows
+        # make it simple: have n/10 possible time windows, task's deadline will be any of the time windows
         # also, set a minimum size to time window
         deadlines = []
-        num_time_windows = 10
+        num_time_windows = round(self.n / 10)
         min_window_size = round(self.frame_duration * self.sys_util)
         window_size = (self.frame_duration - min_window_size) / num_time_windows
         possible_deadlines = [(min_window_size+i*window_size) for i in range(1, num_time_windows)]
