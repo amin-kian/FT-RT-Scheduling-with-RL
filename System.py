@@ -2,6 +2,7 @@ from FEST_Scheduler import FEST_Scheduler
 from EnSuRe_Scheduler import EnSuRe_Scheduler
 from Core import Core
 from Task import Task
+from ApproxTask import ApproxTask
 
 import sys
 
@@ -11,9 +12,11 @@ from ast import literal_eval
 import copy
 
 # FEST variables
-k = 5
+k = 20
 frame_deadline = 200    # in ms
-time_step = 0.01     # fidelity of each time step for the scheduler/task execution times, in ms
+precision_dp = 3
+time_step = 1/10**precision_dp     # fidelity of each time step for the scheduler/task execution times, in ms
+lp_hp_ratio = 0.8
 
 class System:
     """
@@ -83,14 +86,14 @@ class System:
 
         # check if any tasks did not manage to complete
         if self.scheduler_type == "FEST":
-            if self.scheduler.backup_list:
+            if len(self.scheduler.backup_list) > 1:
                 print("THIS SHOULD NOT HAPPEN, BUT,")
-                print("Some tasks did not get to execute: ", end="")
+                print("Some tasks did not get to execute: ")
                 for task in self.scheduler.backup_list:
                     print(task.getId())
         elif self.scheduler_type == "EnSuRe":
             for backup_list in self.scheduler.backup_list:
-                if backup_list:
+                if len(backup_list) > 1:
                     print("THIS SHOULD NOT HAPPEN, BUT,")
                     print("Some tasks did not get to execute: ", end="")
                     for task in backup_list:
@@ -123,14 +126,11 @@ class System:
         return self.hp_core.get_active_duration()
 
 
-if __name__ == "__main__":
-    # parse arguments
+if __name__ == "__main__":    # parse arguments
     try:
-        k = int(sys.argv[1])
-        frame_deadline = int(sys.argv[2])
-        file = sys.argv[3]
+        file = sys.argv[1]
     except IndexError:
-        raise SystemExit("Error: please run 'python38 System.py [k] [frame] [file]', e.g. 'python38 System.py 5 200 data.csv'\r\n\r\n  type = \"FEST\" or \"EnSuRe\" | k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
+        raise SystemExit("Error: please run 'python38 System.py [file]', e.g. 'python38 System.py tasksets/sysutil0.5_cores1_0.csv'\r\n\r\n  file = CSV file containing the taskset")
 
     print("===SCHEDULER PARAMETERS===")
     print("Scheduler = {0}".format("FEST"))
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     print("frame = {0} ms".format(frame_deadline))
 
     print("===SIMULATION===")
-    system = System("FEST", k, frame_deadline, time_step, 1, 0.8, True)
+    system = System("EnSuRe", k, frame_deadline, time_step, 1, lp_hp_ratio, True)
 
     # 0. Read application task set from file
     with open(file, 'r') as read_obj:
@@ -150,7 +150,9 @@ if __name__ == "__main__":
     # convert data into Task objects
     tasks = []
     for task in tasks_data:
-        tasks.append(Task(task[0], task[1], task[2]))
-        
+        hp_execTime = round(task[1] * lp_hp_ratio, precision_dp)
+        #tasks.append(Task(task[0], task[1], hp_execTime))
+        tasks.append(ApproxTask(task[0], task[1], hp_execTime, 0, 0, task[3]))
+
 
     system.run(tasks)

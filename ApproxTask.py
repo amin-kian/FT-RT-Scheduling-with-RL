@@ -30,19 +30,11 @@ class ApproxTask(Task):
         self.workload_quota = []
         self.backup_workload_quota = []
 
-        self.startTime = 0
-
-    def setStartTime(self, startTime):
-        self.startTime = startTime
-
     def getDeadline(self):
         return self.deadline
 
     def getWeight(self):
         return self.weight
-
-    def getWorkloadQuota(self, idx):
-        return self.workload_quota[idx]
 
     def getWorkloadQuota(self, idx):
         return self.workload_quota[idx]

@@ -53,7 +53,7 @@ class EnSuRe_Scheduler:
             out = self.time_step
         return out
 
-    def remove_from_backup_list(self, idx, taskId):
+    def remove_from_backup_list(self, idx, taskId, sim_time):
         """
         Given a task id, remove its corresponding task from the backup_list for the current time-window.
         To be called when a task (either its primary or backup copy) completes execution successfully.
@@ -64,9 +64,9 @@ class EnSuRe_Scheduler:
         # remove task from backup list
         self.backup_list[idx] = [b for b in self.backup_list[idx] if b.getId() != taskId]
         # update size of BB-overloading window
-        self.update_BB_overloading(idx)
+        self.update_BB_overloading(idx, sim_time)
 
-    def update_BB_overloading(self, idx):
+    def update_BB_overloading(self, idx, sim_time):
         """
         Update backup_start with the new size of the BB-overloading window for the current time-window.
         Up to k tasks will be reserved for BB-overloading.
@@ -84,7 +84,7 @@ class EnSuRe_Scheduler:
         if len(self.backup_start) <= idx:
             self.backup_start.append(new_backup_start)
         else:
-            self.backup_start[idx] = new_backup_start
+            self.backup_start[idx] = max(sim_time, new_backup_start)
 
     # Function to generate schedule
     def generate_schedule(self, tasksList):
@@ -180,7 +180,7 @@ class EnSuRe_Scheduler:
                 self.backup_list.append(tempList)
 
                 # x. compute BB-overloading window size
-                self.update_BB_overloading(i)
+                self.update_BB_overloading(i, 0)
                 
 
             else:   ## if not schedulable, exit
@@ -205,8 +205,106 @@ class EnSuRe_Scheduler:
         for i in range(len(self.deadlines)): # each task in the list is the next deadline 
             print("  For time window {0}: {1} ms".format(i, self.backup_start[i]))
 
-
     def simulate(self, lp_cores, hp_core):
+        sim_time = 0
+        for i in range(len(self.deadlines)):
+            # reset fault encountering for tasks first
+            for t in self.pri_schedule[i].values():
+                t.resetEncounteredFault()
+
+            # 1. Calculate the times when faults occur
+            self.generate_fault_occurrences(i)
+
+            # 2. Simulate time steps
+            lp_assignedTask = [None] * len(lp_cores)
+            hp_assignedTask = None
+            key = list(self.pri_schedule[i].keys())[0]
+            keyIdx = 0
+            while sim_time <= self.deadlines[i]:
+                # i. increment active durations
+                for lp in range(len(lp_assignedTask)):
+                    if not lp_assignedTask[lp] is None:
+                        lp_cores[lp].update_active_duration(self.time_step)
+                if not hp_assignedTask is None:
+                    hp_core.update_active_duration(self.time_step)
+
+                # ii. if a primary task has completed, unassign it from core
+                for lp in range(len(lp_assignedTask)):
+                    if not lp_assignedTask[lp] is None:
+                        if sim_time >= lp_assignedTask[lp].getStartTime() + lp_assignedTask[lp].getWorkloadQuota(i):
+                            # if it is a task that shouldn't have encountered an error
+                            if not lp_assignedTask[lp].getEncounteredFault():
+                                # iii. remove from backup list
+                                self.remove_from_backup_list(i, lp_assignedTask[lp].getId(), sim_time)
+                                # if its backup task is already executing and it completed (i.e. did not encounter a fault), cancel the backup task
+                                if not hp_assignedTask is None and hp_assignedTask.getId() == lp_assignedTask[lp].getId():
+                                    hp_assignedTask = None
+
+                            # unassign from core
+                            lp_assignedTask[lp] = None
+
+                # iv. if a backup task has completed, remove it from backup core
+                if not hp_assignedTask is None:
+                    if self.backup_list[i] and sim_time >= hp_assignedTask.getBackupStartTime() + hp_assignedTask.getBackupWorkloadQuota(i):
+                        #remove from backup list
+                        self.remove_from_backup_list(i, hp_assignedTask.getId(), sim_time)
+
+                    # unassign from core
+                    hp_assignedTask = None
+
+                # v. update primary task assignment to cores
+                while (keyIdx < len(self.pri_schedule[i])) and sim_time >= key[0]:
+                    # it actually completed execution, but floating point's a bitch
+                    if not lp_assignedTask[key[1]] is None and lp_assignedTask[key[1]].getId() != self.pri_schedule[i][key].getId():
+                        # if it is a task that shouldn't have encountered an error
+                        if not lp_assignedTask[key[1]].getEncounteredFault():
+                            # iii. remove from backup list
+                            self.remove_from_backup_list(i, lp_assignedTask[key[1]].getId(), sim_time)
+                            # if its backup task is already executing and it completed (i.e. did not encounter a fault), cancel the backup task
+                            if not hp_assignedTask is None and hp_assignedTask.getId() == lp_assignedTask[key[1]].getId():
+                                hp_assignedTask = None
+
+                    if lp_assignedTask[key[1]] is None or lp_assignedTask[key[1]].getId() != self.pri_schedule[i][key].getId():
+                        lp_assignedTask[key[1]] = self.pri_schedule[i][key]
+                        lp_assignedTask[key[1]].setStartTime(sim_time)
+
+                    keyIdx += 1
+                    if keyIdx >= len(self.pri_schedule[i]):
+                        key = None
+                    else:
+                        key = list(self.pri_schedule[i].keys())[keyIdx]
+
+                # vi. update task assignment to backup core
+                if sim_time >= self.backup_start[i]:
+                    if self.backup_list[i]:
+                        # task hasn't started on backup core yet
+                        if hp_assignedTask is None or hp_assignedTask.getId() != self.backup_list[i][0].getId():
+                            hp_assignedTask = self.backup_list[i][0]
+                            hp_assignedTask.setBackupStartTime(sim_time)
+                    else:
+                        hp_assignedTask = None                    
+
+                sim_time += self.time_step
+
+        # 3. Calculate energy consumption of the system from active/idle durations
+        for lpcore in lp_cores:
+            # i. calculate active energy consumption for this core
+            activeConsumption = lpcore.energy_consumption_active(lpcore.get_active_duration())
+            lpcore.update_energy_consumption(activeConsumption)
+            # ii. calculate idle energy consumption for this core
+            idleConsumption = lpcore.energy_consumption_idle(self.frame - lpcore.get_active_duration())
+            lpcore.update_energy_consumption(idleConsumption)
+        
+        # iii. calculate active energy consumption for HP core
+        hp_activeConsumption = hp_core.energy_consumption_active(hp_core.get_active_duration())
+        hp_core.update_energy_consumption(hp_activeConsumption)
+        # iv. calculate idle energy consumption for HP core
+        hp_idleConsumption = hp_core.energy_consumption_idle(self.frame - hp_core.get_active_duration())
+        hp_core.update_energy_consumption(hp_idleConsumption)
+
+
+
+    def simulate_old(self, lp_cores, hp_core):
         # 0. For each time window, simulate:
         for i in range(len(self.deadlines)):
 
@@ -216,8 +314,6 @@ class EnSuRe_Scheduler:
 
             # 1. Calculate the times when faults occur
             self.generate_fault_occurrences(i)
-
-            #print("start: " + str(self.backup_start[i]))
 
             # 2. "Simulate" execution/completion times of the tasks (TODO: take note of overlapping with backup core)
             num_faults_left = min(self.k, len(self.pri_schedule[i]))
@@ -230,7 +326,10 @@ class EnSuRe_Scheduler:
                 if curr_time > self.backup_start[i]:    # we are within a backup execution time, proceed to further checks
                     while (curr_time > (self.backup_start[i] + self.backup_list[i][0].getBackupWorkloadQuota(i))):  # the backup task of a faulty task has completed
                         #print("{0}, {1}, {2}".format(curr_time, self.backup_start[i], self.backup_list[i][0].getBackupWorkloadQuota(i)))
-                        if not self.backup_list[i][0].getEncounteredFault() and not self.backup_list[i][0].completed:
+                        if self.backup_list[i][0].getEncounteredFault():
+                            hp_core.update_active_duration(self.backup_list[i][0].getBackupWorkloadQuota(i))
+                            self.backup_list[i][0].completed = True
+                        elif not self.backup_list[i][0].completed:
                             # Backup task completed before primary task did
                             for v in self.pri_schedule[i].values():
                                 if self.backup_list[i][0].getId() == v.getId():
@@ -249,14 +348,14 @@ class EnSuRe_Scheduler:
                         num_faults_left -= 1
 
                 # if task encountered fault, updating energy consumption for HP core is straightforward
-                if task.getEncounteredFault():
+                #if task.getEncounteredFault():
                     # ii. update active duration for the execution time on HP core
                     # NOTE: removing from backup_list will only be done in a time step after this
-                    hp_core.update_active_duration(task.getBackupWorkloadQuota(i))
-                    task.completed = True
+                    #hp_core.update_active_duration(task.getBackupWorkloadQuota(i))
+                    ##task.completed = True
 
                 # 1. work on primary task
-                elif not task.completed:
+                if not task.getEncounteredFault() and not task.completed:
                     # i. update active duration for the execution time on LP core
                     lp_cores[key[1]].update_active_duration(task.getWorkloadQuota(i))
 
