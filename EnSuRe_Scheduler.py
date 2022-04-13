@@ -249,8 +249,8 @@ class EnSuRe_Scheduler:
                         #remove from backup list
                         self.remove_from_backup_list(i, hp_assignedTask.getId(), sim_time)
 
-                    # unassign from core
-                    hp_assignedTask = None
+                        # unassign from core
+                        hp_assignedTask = None
 
                 # v. update primary task assignment to cores
                 while (keyIdx < len(self.pri_schedule[i])) and sim_time >= key[0]:
@@ -261,7 +261,7 @@ class EnSuRe_Scheduler:
                             # iii. remove from backup list
                             self.remove_from_backup_list(i, lp_assignedTask[key[1]].getId(), sim_time)
                             # if its backup task is already executing and it completed (i.e. did not encounter a fault), cancel the backup task
-                            if not hp_assignedTask is None and hp_assignedTask.getId() == lp_assignedTask[key[1]].getId():
+                            if hp_assignedTask is not None and hp_assignedTask.getId() == lp_assignedTask[key[1]].getId():
                                 hp_assignedTask = None
 
                     if lp_assignedTask[key[1]] is None or lp_assignedTask[key[1]].getId() != self.pri_schedule[i][key].getId():
@@ -282,7 +282,7 @@ class EnSuRe_Scheduler:
                             hp_assignedTask = self.backup_list[i][0]
                             hp_assignedTask.setBackupStartTime(sim_time)
                     else:
-                        hp_assignedTask = None                    
+                        hp_assignedTask = None
 
                 sim_time += self.time_step
 
@@ -444,6 +444,7 @@ class EnSuRe_Scheduler:
 
         #  randomly generate the time occurrence of k faults
         fault_times = []
+        faulty_tasks = []
         for f in range(l):
             # randomly choose a time for the fault to occur
             fault_time = None
@@ -465,7 +466,10 @@ class EnSuRe_Scheduler:
 
                             # add it to list of time steps that a fault occurs
                             fault_times.append(fault_time)
+                            faulty_tasks.append(task.getId())
                             break
 
                 else:   # the time step is after all the tasks arranged
                     fault_time = None
+
+        return faulty_tasks

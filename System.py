@@ -95,7 +95,7 @@ class System:
             for backup_list in self.scheduler.backup_list:
                 if len(backup_list) > 1:
                     print("THIS SHOULD NOT HAPPEN, BUT,")
-                    print("Some tasks did not get to execute: ", end="")
+                    print("Some tasks did not get to execute: ")
                     for task in backup_list:
                         print(task.getId())
 
