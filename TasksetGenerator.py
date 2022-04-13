@@ -9,11 +9,13 @@ class TasksetGenerator:
         """
         Class constructor (__init__).
 
-        distribution: "uniform" or "normal"
+        distribution: "uniform" or "normal" for generating execution times
         n: no. tasks per set
         frame_duration: frame deadline (ms)
-        num_lpcores: no. primary (LP) cores
         sys_util: target system utilisation (%)
+        precision_dp: the precision (number of decimal places) for task execution times
+        num_lpcores: no. primary (LP) cores
+        lp_hp_ratio: the frequency ratio of the LP/HP cores
         """
         self.distribution = distribution
         self.n = n

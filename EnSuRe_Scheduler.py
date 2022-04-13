@@ -162,24 +162,14 @@ class EnSuRe_Scheduler:
                 self.pri_schedule[i] = dict(sorted(self.pri_schedule[i].items(), key=lambda key: key[0]))
 
 
-                # vi. calculate t_slack (start of slack time) and available slack for each core
-                available_slack = [0] * self.m_pri
-                t_slack = pri_cores[0]
-                for m in range(self.m_pri):
-                    available_slack[m] = pri_cores[m]
-                    if pri_cores[m] < t_slack:
-                        t_slack = pri_cores[m]
+                # vi. schedule optional portion of tasks would come here (not used in this simulation)
 
-                # vii. calculate urgency factor of tasks - actually, this is the same as the sorted task list, right?
-
-                # viii. schedule optional portion of the task
-
-                # ix. create backup list
+                # vii. create backup list
                 tempList = tasksA.copy()    # NOTE: taskA is used as it still contains the task that would get completed in this time window
                 #tempList.sort(reverse=True, key=EnSuRe_Scheduler.getTaskWQ) # NOTE: modification to schedule by backup workload quota
                 self.backup_list.append(tempList)
 
-                # x. compute BB-overloading window size
+                # viii. compute BB-overloading window size
                 self.update_BB_overloading(i, 0)
                 
 
@@ -206,6 +196,13 @@ class EnSuRe_Scheduler:
             print("  For time window {0}: {1} ms".format(i, self.backup_start[i]))
 
     def simulate(self, lp_cores, hp_core):
+        """
+        Simulate the execution of the tasks. The high-level steps:
+        1. 
+
+        lp_cores: list of references to the LP Core objects in the System.
+        hp_core: reference to the HP Core object in the System.
+        """
         sim_time = 0
         for i in range(len(self.deadlines)):
             # reset fault encountering for tasks first
@@ -285,121 +282,6 @@ class EnSuRe_Scheduler:
                         hp_assignedTask = None
 
                 sim_time += self.time_step
-
-        # 3. Calculate energy consumption of the system from active/idle durations
-        for lpcore in lp_cores:
-            # i. calculate active energy consumption for this core
-            activeConsumption = lpcore.energy_consumption_active(lpcore.get_active_duration())
-            lpcore.update_energy_consumption(activeConsumption)
-            # ii. calculate idle energy consumption for this core
-            idleConsumption = lpcore.energy_consumption_idle(self.frame - lpcore.get_active_duration())
-            lpcore.update_energy_consumption(idleConsumption)
-        
-        # iii. calculate active energy consumption for HP core
-        hp_activeConsumption = hp_core.energy_consumption_active(hp_core.get_active_duration())
-        hp_core.update_energy_consumption(hp_activeConsumption)
-        # iv. calculate idle energy consumption for HP core
-        hp_idleConsumption = hp_core.energy_consumption_idle(self.frame - hp_core.get_active_duration())
-        hp_core.update_energy_consumption(hp_idleConsumption)
-
-
-
-    def simulate_old(self, lp_cores, hp_core):
-        # 0. For each time window, simulate:
-        for i in range(len(self.deadlines)):
-
-            # reset fault encountering for tasks first
-            for t in self.pri_schedule[i].values():
-                t.resetEncounteredFault()
-
-            # 1. Calculate the times when faults occur
-            self.generate_fault_occurrences(i)
-
-            # 2. "Simulate" execution/completion times of the tasks (TODO: take note of overlapping with backup core)
-            num_faults_left = min(self.k, len(self.pri_schedule[i]))
-            for key in self.pri_schedule[i].keys(): # in sequence of execution start time
-
-                curr_time = key[0]  # the curr "simulation" time
-                task = self.pri_schedule[i][key]    # reference to task
-
-                # 0. at this time step, check if curr_time is greater than the completion time of a backup task, to update backup_list and BB-overloading window
-                if curr_time > self.backup_start[i]:    # we are within a backup execution time, proceed to further checks
-                    while (curr_time > (self.backup_start[i] + self.backup_list[i][0].getBackupWorkloadQuota(i))):  # the backup task of a faulty task has completed
-                        #print("{0}, {1}, {2}".format(curr_time, self.backup_start[i], self.backup_list[i][0].getBackupWorkloadQuota(i)))
-                        if self.backup_list[i][0].getEncounteredFault():
-                            hp_core.update_active_duration(self.backup_list[i][0].getBackupWorkloadQuota(i))
-                            self.backup_list[i][0].completed = True
-                        elif not self.backup_list[i][0].completed:
-                            # Backup task completed before primary task did
-                            for v in self.pri_schedule[i].values():
-                                if self.backup_list[i][0].getId() == v.getId():
-                                    #print("id: " + str(self.backup_list[i][0].getId()))
-                                    v.setCompletionTime(self.backup_start[i] + v.getBackupWorkloadQuota(i))
-                                    v.completed = True
-                                    break
-                            hp_core.update_active_duration(self.backup_list[i][0].getBackupWorkloadQuota(i))
-                            num_faults_left += 1
-
-                        # NOTE: backup core's active duration for this task already accounted for when the task fails
-                        # update backup execution list
-                        self.remove_from_backup_list(i, self.backup_list[i][0].getId())
-
-                        # TEMP: just a checker
-                        num_faults_left -= 1
-
-                # if task encountered fault, updating energy consumption for HP core is straightforward
-                #if task.getEncounteredFault():
-                    # ii. update active duration for the execution time on HP core
-                    # NOTE: removing from backup_list will only be done in a time step after this
-                    #hp_core.update_active_duration(task.getBackupWorkloadQuota(i))
-                    ##task.completed = True
-
-                # 1. work on primary task
-                if not task.getEncounteredFault() and not task.completed:
-                    # i. update active duration for the execution time on LP core
-                    lp_cores[key[1]].update_active_duration(task.getWorkloadQuota(i))
-
-                    # check for overlap with backup execution
-                    completion_time = curr_time + task.getWorkloadQuota(i)  # the time the task completes
-                    if self.log_debug:
-                        pass
-                        #print("Completion time: {0}".format(completion_time))
-                    task.setCompletionTime(completion_time)
-                    task.completed = True
-                    # check if task's primary copy has overlap with backup copy
-                    if completion_time >= self.backup_start[i]:    # if the task completes after backup_start, there is a chance of overlap
-                        # get start time of task's backup copy to calculate the overlap
-                        backup_start_time = self.backup_start[i]
-                        for backup_copy in self.backup_list[i]:
-                            if task.getId() == backup_copy.getId():
-                                break
-                            else:
-                                backup_start_time += backup_copy.getBackupWorkloadQuota(i)
-
-                        # check for overlap
-                        if completion_time > backup_start_time:  # there is an overlap
-                            backup_overlap = completion_time - backup_start_time     # calculate the overlap duration
-                            # i. set the amount of time HP spends on this task as the overlap execution time
-                            #task.setHPExecutedDuration(backup_overlap)
-                            # ii. update active duration for the execution time on HP core
-                            hp_core.update_active_duration(backup_overlap)
-
-                    # update backup execution list
-                    self.remove_from_backup_list(i, task.getId())
-                
-            # TEMP: just to check that tasks completed successfully
-            #print("num_faults_left: {0} for window {1}, left in backup: {2}".format(num_faults_left, i, len(self.backup_list[i])))
-            if num_faults_left > 0:
-                if num_faults_left < len(self.backup_list[i]):
-                    print("Faults were not resolved properly. num_faults = {0}, backup_list length = {1}".format(num_faults_left, len(self.backup_list[i])))
-                elif num_faults_left > len(self.backup_list[i]):
-                    print("Some tasks cannot finish executing.")
-                else:   # it is fine
-                    if self.log_debug:
-                        print("Alls gud: {0}".format(i))
-                    self.backup_list[i].clear()
-            elif num_faults_left < 0:
-                print("Negative, whoopps")
 
         # 3. Calculate energy consumption of the system from active/idle durations
         for lpcore in lp_cores:
