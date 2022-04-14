@@ -110,7 +110,14 @@ class FEST_Scheduler:
     def simulate(self, lp_cores, hp_core):
         """
         Simulate the execution of the tasks. The high-level steps:
-        1. 
+        1. Generate a list of fault occurrences
+        2. Simulate the time steps:
+            i.  Increment the active duration of all cores that were executing a task in the previous time step
+            ii. Update system for primary task(s) that have completed execution
+            iii. Update system if a backup task has completed execution
+            iv. Update assignment of primary tasks to LP cores
+            v.  Update assignment of backup tasks to HP core
+        3. Calculate the energy consumption of the system
 
         lp_cores: list of references to the LP Core objects in the System.
         hp_core: reference to the HP Core object in the System.
@@ -138,7 +145,7 @@ class FEST_Scheduler:
                 if sim_time >= lp_assignedTask.getStartTime() + lp_assignedTask.getLPExecutedDuration():
                     # if it is a task that shouldn't have encountered an error
                     if not lp_assignedTask.getEncounteredFault():
-                        # iii. remove from backup list
+                        # remove from backup list
                         self.remove_from_backup_list(lp_assignedTask.getId(), sim_time)
                         # if its backup task is already executing and it completed (i.e. did not encounter a fault), cancel the backup task
                         if not hp_assignedTask is None and hp_assignedTask.getId() == lp_assignedTask.getId():
@@ -147,7 +154,7 @@ class FEST_Scheduler:
                     # unassign from core
                     lp_assignedTask = None
 
-            # iv. if a backup task has completed, remove it from backup core
+            # iii. if a backup task has completed, remove it from backup core
             if not hp_assignedTask is None:
                 if self.backup_list and sim_time >= hp_assignedTask.getBackupStartTime() + hp_assignedTask.getHPExecutionTime():
                     #remove from backup list
@@ -156,7 +163,7 @@ class FEST_Scheduler:
                     # unassign from backup core
                     hp_assignedTask = None
 
-            # v. update primary task assignment to cores
+            # iv. update primary task assignment to cores
             while (keyIdx < len(self.pri_schedule)) and (sim_time >= key):
                 # it actually completed execution, but floating point's a bitch
                 if not lp_assignedTask is None and lp_assignedTask.getId() != self.pri_schedule[key].getId():
@@ -179,7 +186,7 @@ class FEST_Scheduler:
                     key = list(self.pri_schedule.keys())[keyIdx]
 
 
-            # vi. update task assignment to backup core
+            # v. update task assignment to backup core
             if sim_time >= self.backup_start:
                 if self.backup_list:
                     # task hasn't started on backup core yet
@@ -207,7 +214,7 @@ class FEST_Scheduler:
         # iv. calculate idle energy consumption for HP core
         hp_idleConsumption = hp_core.energy_consumption_idle(self.frame - hp_core.get_active_duration())
         hp_core.update_energy_consumption(hp_idleConsumption)
-        
+
 
     def generate_fault_occurrences(self):
         """

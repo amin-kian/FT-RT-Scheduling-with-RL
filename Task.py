@@ -14,8 +14,6 @@ class Task:
         self.lpExecTime = lp_execTime
         self.hpExecTime = hp_execTime
 
-        # results about the completion of the task
-        self.completionTime = 0
         # whether this task encountered a fault occurring
         self.encounteredFault = False
         # how much time this task spent executing on the LP/HP core
@@ -26,7 +24,6 @@ class Task:
 
         self.start_time = 0
         self.backup_start_time = 0
-        self.completed = False
 
     def getId(self):
         """
@@ -45,12 +42,6 @@ class Task:
         Get the execution time of this task on a HP Core.
         """
         return self.hpExecTime
-
-    def getCompletionTime(self):
-        """
-        Get the time this task completes.
-        """
-        return self.completionTime
 
     def getLPExecutedDuration(self):
         """
@@ -99,15 +90,6 @@ class Task:
         Set the start time of the task, i.e. the time at which the task begins execution on the backup (HP) core.
         """
         self.backup_start_time = backupStartTime
-
-    def setCompletionTime(self, completionTime):
-        """
-        Set the completion time of the task, i.e. the time at which the task completes.
-
-        completionTime: completion time of the task
-        """
-        self.completionTime = completionTime
-        self.completed = True
 
     def setHPExecutedDuration(self, duration):
         """

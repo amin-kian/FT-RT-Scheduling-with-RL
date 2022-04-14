@@ -12,16 +12,16 @@ class ApproxTask(Task):
         id: the task id
         lpExecTime: the execution time of the mandatory task component on a LP Core
         hpExecTime: the execution time of the mandatory task component on a HP Core
-        lp_optExecTime: the execution time of the optional task component on a LP Core
-        hp_optExecTime: the execution time of the optional task component on a HP Core
+        lp_optExecTime: the execution time of the optional task component on a LP Core (not used)
+        hp_optExecTime: the execution time of the optional task component on a HP Core (not used)
         deadline: the task deadline (in ms)
         """
         Task.__init__(self, id, lp_manExecTime, hp_manExecTime)
 
         # for EnSuRe
         self.deadline = deadline
-        self.lp_optExecTime = lp_optExecTime
-        self.hp_optExecTime = hp_optExecTime
+        self.lp_optExecTime = lp_optExecTime    # not used
+        self.hp_optExecTime = hp_optExecTime    # not used
 
         # calculate execution rate demand, i.e. weight
         self.weight = lp_manExecTime / deadline
@@ -77,11 +77,9 @@ class ApproxTask(Task):
     def resetEncounteredFault(self):
         """
         Reset for a new time-window whether the task encountered a fault.
-        Also resets whether the task was marked completed.
         """
         # reset the encounteredFault flag
         self.encounteredFault = False
-        self.completed = False
 
     def setEncounteredFault(self, idx, faultOccurredTime):
         """

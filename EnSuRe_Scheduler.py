@@ -197,7 +197,15 @@ class EnSuRe_Scheduler:
     def simulate(self, lp_cores, hp_core):
         """
         Simulate the execution of the tasks. The high-level steps:
-        1. 
+        1. For each time window,
+            a. Generate a list of fault occurrences
+            b. Simulate the time steps:
+                i.  Increment the active duration of all cores that were executing a task in the previous time step
+                ii. Update system for primary task(s) that have completed execution
+                iii. Update system if a backup task has completed execution
+                iv. Update assignment of primary tasks to LP cores
+                v.  Update assignment of backup tasks to HP core
+        2. Calculate the energy consumption of the system
 
         lp_cores: list of references to the LP Core objects in the System.
         hp_core: reference to the HP Core object in the System.
@@ -230,7 +238,7 @@ class EnSuRe_Scheduler:
                         if sim_time >= lp_assignedTask[lp].getStartTime() + lp_assignedTask[lp].getWorkloadQuota(i):
                             # if it is a task that shouldn't have encountered an error
                             if not lp_assignedTask[lp].getEncounteredFault():
-                                # iii. remove from backup list
+                                # remove from backup list
                                 self.remove_from_backup_list(i, lp_assignedTask[lp].getId(), sim_time)
                                 # if its backup task is already executing and it completed (i.e. did not encounter a fault), cancel the backup task
                                 if not hp_assignedTask is None and hp_assignedTask.getId() == lp_assignedTask[lp].getId():
@@ -239,7 +247,7 @@ class EnSuRe_Scheduler:
                             # unassign from core
                             lp_assignedTask[lp] = None
 
-                # iv. if a backup task has completed, remove it from backup core
+                # iii. if a backup task has completed, remove it from backup core
                 if not hp_assignedTask is None:
                     if self.backup_list[i] and sim_time >= hp_assignedTask.getBackupStartTime() + hp_assignedTask.getBackupWorkloadQuota(i):
                         #remove from backup list
@@ -248,7 +256,7 @@ class EnSuRe_Scheduler:
                         # unassign from core
                         hp_assignedTask = None
 
-                # v. update primary task assignment to cores
+                # iv. update primary task assignment to cores
                 while (keyIdx < len(self.pri_schedule[i])) and sim_time >= key[0]:
                     # it actually completed execution, but floating point's a bitch
                     if not lp_assignedTask[key[1]] is None and lp_assignedTask[key[1]].getId() != self.pri_schedule[i][key].getId():
@@ -270,7 +278,7 @@ class EnSuRe_Scheduler:
                     else:
                         key = list(self.pri_schedule[i].keys())[keyIdx]
 
-                # vi. update task assignment to backup core
+                # v. update task assignment to backup core
                 if sim_time >= self.backup_start[i]:
                     if self.backup_list[i]:
                         # task hasn't started on backup core yet
