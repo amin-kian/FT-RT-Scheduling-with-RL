@@ -2,18 +2,9 @@ from FEST_Scheduler import FEST_Scheduler
 from EnSuRe_Scheduler import EnSuRe_Scheduler
 from Core import Core
 from Task import Task
-
-import sys
-
-from csv import reader
-from ast import literal_eval
+from ApproxTask import ApproxTask
 
 import copy
-
-# FEST variables
-k = 5
-frame_deadline = 200    # in ms
-time_step = 0.01     # fidelity of each time step for the scheduler/task execution times, in ms
 
 class System:
     """
@@ -55,6 +46,7 @@ class System:
         Runs the scheduling algorithm with the following high-level steps:
         1. Generate schedule. If no feasible schedule can be generated, exit
         2. Simulate execution of the tasks, and calculate the system's energy consumption
+        3. Print the results of the simulation (if log_debug == True)
 
         taskset: the taskset to be scheduled by the algorithm.
         """
@@ -83,16 +75,16 @@ class System:
 
         # check if any tasks did not manage to complete
         if self.scheduler_type == "FEST":
-            if self.scheduler.backup_list:
+            if len(self.scheduler.backup_list) > 1:
                 print("THIS SHOULD NOT HAPPEN, BUT,")
-                print("Some tasks did not get to execute: ", end="")
+                print("Some tasks did not get to execute: ")
                 for task in self.scheduler.backup_list:
                     print(task.getId())
         elif self.scheduler_type == "EnSuRe":
             for backup_list in self.scheduler.backup_list:
-                if backup_list:
+                if len(backup_list) > 1:
                     print("THIS SHOULD NOT HAPPEN, BUT,")
-                    print("Some tasks did not get to execute: ", end="")
+                    print("Some tasks did not get to execute: ")
                     for task in backup_list:
                         print(task.getId())
 
@@ -120,37 +112,7 @@ class System:
         return energy_consumption
 
     def get_hpcore_active_duration(self):
+        """
+        Get the duration that the HP core was active.
+        """
         return self.hp_core.get_active_duration()
-
-
-if __name__ == "__main__":
-    # parse arguments
-    try:
-        k = int(sys.argv[1])
-        frame_deadline = int(sys.argv[2])
-        file = sys.argv[3]
-    except IndexError:
-        raise SystemExit("Error: please run 'python38 System.py [k] [frame] [file]', e.g. 'python38 System.py 5 200 data.csv'\r\n\r\n  type = \"FEST\" or \"EnSuRe\" | k = no. faults to tolerate | frame = deadline (ms) | file = CSV file containing the taskset")
-
-    print("===SCHEDULER PARAMETERS===")
-    print("Scheduler = {0}".format("FEST"))
-    print("k = {0}".format(k))
-    print("frame = {0} ms".format(frame_deadline))
-
-    print("===SIMULATION===")
-    system = System("FEST", k, frame_deadline, time_step, 1, 0.8, True)
-
-    # 0. Read application task set from file
-    with open(file, 'r') as read_obj:
-        # pass the file object to reader() to get the reader object
-        csv_reader = reader(read_obj)
-        # Get all rows of csv from csv_reader object as list of tuples
-        tasks_data = [tuple(map(literal_eval, x)) for x in map(tuple, csv_reader)]
-        
-    # convert data into Task objects
-    tasks = []
-    for task in tasks_data:
-        tasks.append(Task(task[0], task[1], task[2]))
-        
-
-    system.run(tasks)

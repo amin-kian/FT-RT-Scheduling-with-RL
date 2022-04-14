@@ -9,11 +9,13 @@ class TasksetGenerator:
         """
         Class constructor (__init__).
 
-        distribution: "uniform" or "normal"
+        distribution: "uniform" or "normal" for generating execution times
         n: no. tasks per set
         frame_duration: frame deadline (ms)
-        num_lpcores: no. primary (LP) cores
         sys_util: target system utilisation (%)
+        precision_dp: the precision (number of decimal places) for task execution times
+        num_lpcores: no. primary (LP) cores
+        lp_hp_ratio: the frequency ratio of the LP/HP cores
         """
         self.distribution = distribution
         self.n = n
@@ -44,7 +46,7 @@ class TasksetGenerator:
         filename: Name of the file to write to. If the file already exists, it will be overwritten, else it will be created.
 
         Taskset Generation Procedure
-        1. Randomise n numbers from 0 to 1  - continuous uniform distribution or normal distribution
+        1. Randomise n numbers from 0 to 1  - uniform distribution or normal distribution
         2. Sum them up to find the current "magnitude", then normalize/scale to the expected magnitude (e.g. 50% of 200ms)
         3. Round to the precision
         4. Determine a deadline for each task (would only be used by EnSuRe)
@@ -77,8 +79,6 @@ class TasksetGenerator:
             deadline = np.random.choice(possible_deadlines)    # randomly pick one of the time windows as the deadline
             deadlines.append(deadline)
 
-        # NOTE: how to ensure WQ must be within?
-
         # 5. Generate the task data
         tasks = ""
         lpexec_check = []
@@ -102,8 +102,6 @@ class TasksetGenerator:
             # iii. task deadline (for EnSuRe only)
             tasks = tasks + str(deadlines[i])
 
-            # iv. optional execution time (for EnSuRe only)
-
             tasks = tasks + "\n"
 
         # 5. Write task data to CSV file
@@ -113,24 +111,3 @@ class TasksetGenerator:
         # print(sum(hpexec_check))
         with open(filename, 'w') as f:
             f.write(tasks)
-
-
-if __name__ == "__main__":
-
-    # parse arguments
-    try:
-        n = int(sys.argv[1])
-        frame_duration = int(sys.argv[2])
-        sys_util = float(sys.argv[3])
-    except IndexError:
-        raise SystemExit("Error: please run 'python38 taskset_generator.py [n] [frame] [sys_util]', e.g. 'python38 taskset_generator.py 5 200 0.75'\r\n\r\n  n = no. tasks per set | frame = deadline (ms) | sys_util = system utilisation (%)")
-
-    print("===TASKSET PARAMETERS===")
-    print("For Scheduler = {0}".format("FEST"))
-    print("no. tasks n = {0}".format(n))
-    print("frame = {0} ms".format(frame_duration))
-    print("system utilisation % = {0}".format(sys_util))
-
-    # run
-    taskset_gen = TasksetGenerator(n, frame_duration, sys_util, 2, 1, 0.5)
-    taskset_gen.generate('tasksets/test.csv')
