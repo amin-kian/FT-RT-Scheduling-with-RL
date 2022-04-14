@@ -57,7 +57,7 @@ class TasksetGenerator:
             rand_sample = np.random.random_sample(n)
         elif self.distribution == "normal":
             rand_sample = np.random.normal(loc=self.mean, scale=self.sd, size=self.n)
-            # normalize to 0 to 1
+            # normalize to min_norm to 1
             rand_sample = (1-self.min_norm)*(rand_sample - np.min(rand_sample))/np.ptp(rand_sample) + self.min_norm
 
         # 2. Get the "magnitude" of the array (sum of the array)
