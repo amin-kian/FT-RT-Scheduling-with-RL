@@ -31,30 +31,62 @@ class ApproxTask(Task):
         self.backup_workload_quota = []
 
     def getDeadline(self):
+        """
+        Get the task deadline.
+        """
         return self.deadline
 
     def getWeight(self):
+        """
+        Get the task weight, which is defined as ((mandatory execution time) / deadline).
+        """
         return self.weight
 
     def getWorkloadQuota(self, idx):
+        """
+        Get the task workload-quota for a time-window, which is defined as (weight * time-window).
+
+        idx: Which time-window to get the workload-quota of
+        """
         return self.workload_quota[idx]
 
     def getBackupWorkloadQuota(self, idx):
+        """
+        Get the task's backup workload-quota for a time-window.
+
+        idx: Which time-window to get the workload-quota of
+        """
         return self.backup_workload_quota[idx]
 
     def setWorkloadQuota(self, wq):
+        """
+        Add a newly computed task's workload-quota to the list of workload-quotas.
+
+        wq: the newly computed workload-quota
+        """
         self.workload_quota.append(wq)
         
     def setBackupWorkloadQuota(self, bwq):
+        """
+        Add a newly computed backup task's workload-quota to the list of backup workload-quotas.
+
+        wq: the newly computed backup workload-quota
+        """
         self.backup_workload_quota.append(bwq)
 
     def resetEncounteredFault(self):
+        """
+        Reset for a new time-window whether the task encountered a fault.
+        Also resets whether the task was marked completed.
+        """
         # reset the encounteredFault flag
         self.encounteredFault = False
         self.completed = False
 
     def setEncounteredFault(self, idx, faultOccurredTime):
         """
+        Set that the task would be encountering a fault.
+
         faultOccurredTime: relative to the start time of the primary copy of this task
         """
         # set the encounteredFault flag

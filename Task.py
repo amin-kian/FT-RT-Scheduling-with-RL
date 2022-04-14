@@ -78,6 +78,8 @@ class Task:
         
     def setEncounteredFault(self, faultOccurredTime):
         """
+        Set that the task would be encountering a fault.
+
         faultOccurredTime: relative to the start time of the primary copy of this task
         """
         # set the encounteredFault flag
