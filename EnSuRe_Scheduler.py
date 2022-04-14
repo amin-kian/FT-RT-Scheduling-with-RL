@@ -55,7 +55,7 @@ class EnSuRe_Scheduler:
 
     def remove_from_backup_list(self, idx, taskId, sim_time):
         """
-        Given a task id, remove its corresponding task from the backup_list for the current time-window.
+        Given a task id, remove its corresponding task from the backup_list for a particular time-window.
         To be called when a task (either its primary or backup copy) completes execution successfully.
 
         idx: the current time-window
@@ -68,7 +68,7 @@ class EnSuRe_Scheduler:
 
     def update_BB_overloading(self, idx, sim_time):
         """
-        Update backup_start with the new size of the BB-overloading window for the current time-window.
+        Update backup_start with the new size of the BB-overloading window for a particular time-window.
         Up to k tasks will be reserved for BB-overloading.
 
         idx: the current time window
@@ -171,7 +171,6 @@ class EnSuRe_Scheduler:
 
                 # viii. compute BB-overloading window size
                 self.update_BB_overloading(i, 0)
-                
 
             else:   ## if not schedulable, exit
                 print("Unable to schedule tasks, WQ < time_window")
