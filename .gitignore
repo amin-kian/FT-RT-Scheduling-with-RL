@@ -1,6 +1,13 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 .ipynb_checkpoints/
+venv/
+.idea/
+# Other common files to ignore
+*.pyc
+__pycache__/
+# Ignore MacOS system files
+.DS_Store
 
 # for own project
 tasksets/

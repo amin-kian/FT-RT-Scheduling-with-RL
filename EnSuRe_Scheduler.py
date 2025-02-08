@@ -320,8 +320,12 @@ class EnSuRe_Scheduler:
         4. If the generated fault time is not valid, repeat steps 1-3.
         5. Repeat steps 1-4 for k times or number of tasks in this time window, whichever is smaller.
 
+
         idx: the current time-window
         """
+
+
+
         l = min(self.k, len(self.pri_schedule[idx]))
 
         if idx == 0:  # first deadline
@@ -362,3 +366,7 @@ class EnSuRe_Scheduler:
                     fault_time = None
 
         return faulty_tasks
+
+
+
+

@@ -5,7 +5,7 @@ class ApproxTask(Task):
     Class which represents an independent task item with their own deadlines for an approximation-based system.
     Inherits from the base class Task to implement additional functionalities for custom task deadline and approximation-based features.
     """
-    def __init__(self, id, lp_manExecTime, hp_manExecTime, lp_optExecTime, hp_optExecTime, deadline):
+    def __init__(self, id, lp_manExecTime, hp_manExecTime, deadline):
         """
         Class constructor (__init__).
 
@@ -20,8 +20,7 @@ class ApproxTask(Task):
 
         # for EnSuRe
         self.deadline = deadline
-        self.lp_optExecTime = lp_optExecTime    # not used
-        self.hp_optExecTime = hp_optExecTime    # not used
+
 
         # calculate execution rate demand, i.e. weight
         self.weight = lp_manExecTime / deadline

@@ -1,15 +1,15 @@
 from FEST_Scheduler import FEST_Scheduler
 from EnSuRe_Scheduler import EnSuRe_Scheduler
+from EnSuRe_RL_Scheduler import EnSuRe_RL_Scheduler
 from Core import Core
-from Task import Task
-from ApproxTask import ApproxTask
-
 import copy
+
 
 class System:
     """
     Class which represents a heterogeneous system that has one or more Low-Power (LP) cores, and one High-Performance (HP) core.
     """
+
     def __init__(self, scheduler_type, k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug=False):
         """
         Class constructor (__init__).
@@ -27,8 +27,10 @@ class System:
             self.scheduler = FEST_Scheduler(k, frame, time_step, log_debug)
         elif scheduler_type == "EnSuRe":
             self.scheduler = EnSuRe_Scheduler(k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug)
-        else:
-            raise SystemExit("Invalid scheduler type given.")
+        elif scheduler_type == "EnSuRe-RL":
+            self.scheduler = EnSuRe_RL_Scheduler(k, frame, time_step, num_lp_cores, lp_hp_ratio, log_debug)
+        # else:
+        #     raise SystemExit("Invalid scheduler type given.")
 
         lp_freq = 1.0
         hp_freq = lp_freq / lp_hp_ratio
@@ -57,17 +59,17 @@ class System:
         if not self.scheduler.generate_schedule(tasks):
             print("Failed to generate schedule. Exiting simulation")
             return
-        
+
         if self.log_debug:
             print("Schedule generated")
-            #self.scheduler.print_schedule()
+            # self.scheduler.print_schedule()
 
         # 2. Runtime: execute tasks
         if self.log_debug:
             print("Start running simulation ...")
         # start running the scheduler
         self.scheduler.simulate(self.lp_cores, self.hp_core)
-        
+
         # 3. RESULTS
         if self.log_debug:
             print("===RESULTS===")
@@ -80,7 +82,7 @@ class System:
                 print("Some tasks did not get to execute: ")
                 for task in self.scheduler.backup_list:
                     print(task.getId())
-        elif self.scheduler_type == "EnSuRe":
+        elif self.scheduler_type == "EnSuRe" or self.scheduler_type == "EnSuRe-RL":
             for backup_list in self.scheduler.backup_list:
                 if len(backup_list) > 1:
                     print("THIS SHOULD NOT HAPPEN, BUT,")
@@ -98,7 +100,6 @@ class System:
             for lpcore in self.lp_cores:
                 print("  {0}: {1}".format(lpcore.name, lpcore.get_energy_consumed()))
             print("  {0}: {1}".format(self.hp_core.name, self.hp_core.get_energy_consumed()))
-
 
     def get_energy_consumption(self):
         """

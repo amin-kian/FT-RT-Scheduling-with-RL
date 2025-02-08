@@ -52,9 +52,10 @@ class TasksetGenerator:
         4. Determine a deadline for each task (would only be used by EnSuRe)
         5. Generate the task list
         """
+
         # 1. Randomly sample n numbers
         if self.distribution == "uniform":
-            rand_sample = np.random.random_sample(n)
+            rand_sample = np.random.random_sample(self.n)
         elif self.distribution == "normal":
             rand_sample = np.random.normal(loc=self.mean, scale=self.sd, size=self.n)
             # normalize to min_norm to 1
