@@ -11,12 +11,12 @@ Python 3.8
 Clone this repository.
 
 ```
-git clone https://github.com/djtfoo/FT-RT-Scheduling.git
+git clone [https://github.com/amin-kian/FT-RT-Scheduling-with-RL]
 ```
 
 The required Python libraries can be installed using pip via requirements.txt.
 ```
-cd FT-RT-Scheduling
+cd FT-RT-Scheduling-with-RL
 pip install -r ./requirements.txt
 ```
 
